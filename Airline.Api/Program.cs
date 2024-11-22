@@ -2,25 +2,21 @@ using Airline.Api.Context;
 using Airline.Api.Services.IServices;
 using Airline.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFlightService, FlightService>();
 builder.Services.AddScoped<ITicketService, TicketService>();
 
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// Swagger/OpenAPI configuration
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -33,11 +29,11 @@ builder.Services.AddSwaggerGen(options =>
         Name = "Authorization",
         In = ParameterLocation.Header,
         Scheme = "Bearer"
-
     });
     options.AddSecurityRequirement(new OpenApiSecurityRequirement()
     {
-        {   new OpenApiSecurityScheme
+        {
+            new OpenApiSecurityScheme
             {
                 Reference = new OpenApiReference
                 {
@@ -47,15 +43,25 @@ builder.Services.AddSwaggerGen(options =>
                 Scheme = "oauth2",
                 Name = "Bearer",
                 In = ParameterLocation.Header
-
             },
             new List<string>()
         }
     });
 });
 
-var key = builder.Configuration.GetValue<string>("ApiSettings:Secret");
+// CORS Configuration
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
+// JWT Authentication
+var key = builder.Configuration.GetValue<string>("ApiSettings:Secret");
 builder.Services.AddAuthentication(x =>
 {
     x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -70,38 +76,32 @@ builder.Services.AddAuthentication(x =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(key)),
         ValidateIssuer = false,
         ValidateAudience = false
-
     };
-
 });
-builder.Services.AddDbContext<AirlineDbContext>(option =>
+
+// Database Configuration
+builder.Services.AddDbContext<AirlineDbContext>(options =>
 {
-    option.UseSqlServer(builder.Configuration.GetConnectionString("DefaultSQLConnection"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultSQLConnection"));
 });
 
+// Build the application
 var app = builder.Build();
 
-
-
+// Development-specific middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-app.UseSwaggerUI(options =>
-{
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "SE4458_Midterm_AirlineAPI_V1");
-
-});
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "SE4458_Midterm_AirlineAPI_V1");
+    });
 }
 
-//app.UseSwagger();
-//app.UseSwaggerUI(options =>
-//{
-//    options.SwaggerEndpoint("/swagger/v1/swagger.json", "SE4458_Midterm_AirlineAPI_V1");
-//    options.SwaggerEndpoint("/swagger/v2/swagger.json", "SE4458_Midterm_AirlineAPI_V2");
-//    options.RoutePrefix = string.Empty;
-//});
-
+// Middleware pipeline
 app.UseHttpsRedirection();
+
+app.UseCors("AllowAll"); // CORS Policy
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -50,20 +50,21 @@ namespace Airline.Api.Services
 
 
 
-        public async Task<bool> InsertFlightAsync(CreateFlightRequest request)
+        public async Task<bool> InsertFlightAsync(CreateFlightRequest createFlightRequest)
         {
             try
             {
                 
                 var flight = new Flight
                 {
-                    Departure = request.From,
-                    Destination = request.To,
-                    DepartureDate = request.DepartureDate,
-                    DaysOfWeek = request.DaysOfWeek,
-                    Capacity = request.Capacity,
-                    AvailableSeats = request.Capacity,
-                    Price = request.Price
+                    Departure = createFlightRequest.From,
+                    Destination = createFlightRequest.To,
+                    DepartureDate = createFlightRequest.DepartureDate,
+                    DaysOfWeek = createFlightRequest.DaysOfWeek,
+                    Capacity = createFlightRequest.Capacity,
+                    AvailableSeats = createFlightRequest.Capacity,
+                    Price = createFlightRequest.Price,
+                    FlightNumber = createFlightRequest.FlightNumber
                 };
 
                 _context.Flights.Add(flight);
